@@ -1,0 +1,9 @@
+{
+  "name": "Amio Batch Token Creator",
+  "id": "1073553442686146846",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": [
+    "figma"
+  ]
+}
