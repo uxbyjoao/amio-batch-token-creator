@@ -5,14 +5,15 @@
 const TOKEN_FORMAT = /@token\[([a-z,]*)]/g;
 
 /**
- * Creates a list without any component instances
- * @param node The component to purge component instances from
+ * Creates a list without any component instances and their children
+ * @param node The component node to purge component instances and their children from
+ * @return A NodeList without any component instances and their children
  */
 function purgeInstancesFromComponent(
   component: ComponentNode
-): Array<BaseNode> {
+): Array<SceneNode> {
   // TODO: We can probably do this whole thing with the node's ID only
-  // TODO: Convert everything to services
+  // TODO: Try with a while loop instead
   const purgedList = component.findAll(() => true);
   const toFilter = [];
   purgedList.forEach((node) => {
@@ -27,31 +28,46 @@ function purgeInstancesFromComponent(
     let index = purgedList.findIndex((node) => node === nodeToErase);
     if (index !== -1) purgedList.splice(index, 1);
   });
-  console.log(" ");
-  console.log("FINAL PURGED NODE LIST:");
-  purgedList.forEach((node) => console.log(node.name));
-  console.log(" ");
   return purgedList;
 }
 
 /**
- * Run only if a single component set is selected
+ * Filters out nodes that don't have the token annotation
+ * @param nodeList A list of nodes to filter
+ * @param tokenFormat A RegEx for the token annotation's format
+ * @return A list of only the nodes which contain token annotations
  */
-if (figma.currentPage.selection.length !== 1) {
-  figma.closePlugin("Please select a single component set.");
-} else {
-  for (const node of figma.currentPage.selection) {
-    if (node.type !== "COMPONENT_SET") {
-      figma.closePlugin("Please select a single component set.");
-    } else {
-      for (const component of node.children) {
-        if (component.type === "COMPONENT") {
-          const childrenWithoutInstances =
-            purgeInstancesFromComponent(component);
-        }
+function filterNonAnnotatedNodes(
+  nodeList: SceneNode[],
+  tokenFormat: RegExp
+): SceneNode[] {
+  return nodeList.filter((node) => tokenFormat.test(node.name));
+}
+
+/**
+ * Main plugin function
+ */
+function main(): void {
+  const selection = figma.currentPage.selection;
+  // Plugin only runs if only a single component set is selected
+  if (selection.length !== 1 || selection[0].type !== "COMPONENT_SET") {
+    figma.closePlugin("Please select a single component set.");
+  } else {
+    const componentListNode = selection[0];
+    const componentList = componentListNode.children;
+    for (const component of componentList) {
+      if (component.type === "COMPONENT") {
+        // Purge component instances
+        const purged = purgeInstancesFromComponent(component);
+        // Get only nodes with token annotation
+        const tokensOnly = filterNonAnnotatedNodes(purged, TOKEN_FORMAT);
       }
     }
   }
 }
 
-figma.closePlugin();
+// Run the plugin
+main();
+
+// Make sure we close the plugin in case of any exception
+figma.closePlugin("Closed with unhandled exception.");
